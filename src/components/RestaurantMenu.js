@@ -1,54 +1,62 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Shimmer from "./Shimmer";
-import { swiggy_menu_api_URL } from "../../constants";
 import { useParams } from "react-router-dom";
 import useRestaurantMenu from "../../utils/useRestaurantMenu";
 import useOnlineStatus from "../../utils/useOnlineStatus";
+import { CDN_URL } from "../../utils/constants"; // Ensure this is correctly imported
+
 const RestaurantMenu = () => {
-  // const [resInfo, setResInfo] = useState(null);
-   const {resId}=useParams();
-  // console.log(resId);
-  // useEffect(() => {
-  //   fetchMenu();
-  // }, []);
-  // const fetchMenu = async () => {
-  //   const data = await fetch(
-  //     swiggy_menu_api_URL+resId
-  //   );
-  //   const json = await data.json();
-  //   console.log(json.data);
-  //   console.log(json.data.cards[2].card.card.info.name);
-  //   //const name = json.data.cards[2].card.card.info.name;
-  //   setResInfo(json.data);
-  // };
-  const onlineStatus=useOnlineStatus();
-  if(onlineStatus===false)return (<div><h1>You are offline , Check your Internet </h1></div>);
+  const { resId } = useParams();
+  const onlineStatus = useOnlineStatus();
 
-  const resInfo=useRestaurantMenu(resId);
-  console.log(resInfo);
-  if(resInfo===null)return <Shimmer/>;
-   const{name,city,costForTwoMessage}=resInfo?.cards[2]?.card?.card?.info;
-   const newdata=resInfo.cards[4].groupedCard.cardGroupMap.REGULAR.cards[2].card.card.itemCards;
-   console.log(newdata);
-   const {itemCards}=resInfo.cards[4].groupedCard.cardGroupMap.REGULAR.cards[2].card.card;
+  if (onlineStatus === false) return <div><h1>You are offline, Check your Internet</h1></div>;
+
+  const resInfo = useRestaurantMenu(resId);
+  if (resInfo === null) return <Shimmer />;
+
+  const { name, city, costForTwoMessage } = resInfo?.cards[2]?.card?.card?.info;
+
+  // Extracting item cards from the menu
+  const groupedCardMap = resInfo.cards[4]?.groupedCard?.cardGroupMap?.REGULAR?.cards || [];
+  const allItemCards = groupedCardMap.flatMap(card =>
+    card.card?.card?.itemCards || []
+  );
+
   return (
-   
-    <div className="menu">
-      <h1>{name}</h1>
-      <h1>{city}</h1>
-      <h1>{costForTwoMessage}</h1>
+    <div className="menu p-4">
+      <h1 className="text-3xl font-bold mb-2">{name}</h1>
+      <h2 className="text-xl mb-2">{city}</h2>
+      <h3 className="text-lg mb-4">{costForTwoMessage}</h3>
 
-      <h2>menu</h2>
-      <ul>
-       { itemCards.map((i)=>(
-        
-        <li key={i.card.info.id}>{i.card.info.name}</li>
-       )
-            
-    )};
-        <li>{itemCards[0].card.info.name}</li>
-      </ul>
+      <h2 className="text-xl font-semibold mb-2">Menu</h2>
+      {allItemCards.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {allItemCards.map((item) => (
+            <div key={item.card.info.id} className="border rounded-lg overflow-hidden shadow-md">
+              {item.card.info.cloudinaryImageId && (
+                <img
+                  className="w-full h-48 object-cover"
+                  src={`${CDN_URL}${item.card.info.cloudinaryImageId}`}
+                  alt={item.card.info.name}
+                />
+              )}
+              <div className="p-4">
+                <h3 className="text-lg font-semibold">{item.card.info.name}</h3>
+                {item.card.info.price ? (
+                  <p className="text-sm text-gray-600">₹{item.card.info.price / 100}</p>
+                ) : (
+                  <p className="text-sm text-gray-600">Price not available</p>
+                )}
+                <p className="text-sm text-gray-500">{item.card.info.description || 'No description available'}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-gray-500">No items available.</p>
+      )}
     </div>
   );
 };
+
 export default RestaurantMenu;
